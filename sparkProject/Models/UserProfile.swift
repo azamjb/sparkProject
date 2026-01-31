@@ -51,4 +51,9 @@ class UserProfileManager: ObservableObject {
     func hasCompletedOnboarding() -> Bool {
         return userProfile?.hasCompletedOnboarding ?? false
     }
+    
+    func clearProfile() {
+        self.userProfile = nil
+        UserDefaults.standard.removeObject(forKey: userDefaultsKey)
+    }
 }
