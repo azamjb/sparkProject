@@ -194,7 +194,10 @@ struct AppointmentView: View {
 struct WellnessCheckView: View {
     @State private var messages: [ChatMessage] = []
     @State private var inputText: String = ""
+    @State private var isLoadingResponse = false
     @FocusState private var isInputFocused: Bool
+    
+    private let aiService = AIService(apiKey: Config.openAIKey)
     
     var body: some View {
         ZStack {
@@ -230,6 +233,22 @@ struct WellnessCheckView: View {
                                         ChatBubbleView(message: message)
                                             .id(message.id)
                                     }
+                                    
+                                    // Loading indicator
+                                    if isLoadingResponse {
+                                        HStack {
+                                            ProgressView()
+                                                .scaleEffect(0.8)
+                                            Text("Thinking...")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(.black.opacity(0.6))
+                                        }
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 12)
+                                        .background(Color(white: 0.9))
+                                        .cornerRadius(16)
+                                        .id("loading")
+                                    }
                                 }
                                 .padding(.horizontal, 20)
                                 .padding(.bottom, 16)
@@ -238,6 +257,15 @@ struct WellnessCheckView: View {
                                 if let lastMessage = messages.last {
                                     withAnimation(.easeOut(duration: 0.3)) {
                                         proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                    }
+                                }
+                            }
+                            .onChange(of: isLoadingResponse) { loading in
+                                if loading {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        withAnimation {
+                                            proxy.scrollTo("loading", anchor: .bottom)
+                                        }
                                     }
                                 }
                             }
@@ -266,8 +294,8 @@ struct WellnessCheckView: View {
                                     .background(Color(white: 0.9)) // Light grey background
                                     .cornerRadius(12)
                             }
-                            .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                            .opacity(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.5 : 1.0)
+                            .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingResponse)
+                            .opacity((inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingResponse) ? 0.5 : 1.0)
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
@@ -303,6 +331,37 @@ struct WellnessCheckView: View {
         let trimmedText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else { return }
         
+        // Check if API key is set
+        guard Config.openAIKey != "YOUR_API_KEY_HERE" else {
+            let errorMessage = ChatMessage(
+                content: "Please add your OpenAI API key in Config.swift to enable AI responses.",
+                isFromUser: false
+            )
+            messages.append(errorMessage)
+            return
+        }
+        
+        // Validate API key format
+        let trimmedKey = Config.openAIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedKey.hasPrefix("sk-") else {
+            let errorMessage = ChatMessage(
+                content: "Invalid API key format. OpenAI API keys should start with 'sk-'. Please check your Config.swift file.",
+                isFromUser: false
+            )
+            messages.append(errorMessage)
+            return
+        }
+        
+        // Debug: Check key length (OpenAI keys are typically 51+ characters)
+        if trimmedKey.count < 20 {
+            let errorMessage = ChatMessage(
+                content: "API key appears too short. Please verify you copied the complete key from OpenAI.",
+                isFromUser: false
+            )
+            messages.append(errorMessage)
+            return
+        }
+        
         // Add user message
         let userMessage = ChatMessage(content: trimmedText, isFromUser: true)
         messages.append(userMessage)
@@ -310,14 +369,65 @@ struct WellnessCheckView: View {
         // Clear input
         inputText = ""
         
-        // TODO: Add AI response logic here
-        // For now, we'll just echo back a simple response
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            let aiResponse = ChatMessage(
-                content: "Thank you for sharing. I'm here to help you with your wellness journey.",
-                isFromUser: false
-            )
-            messages.append(aiResponse)
+        // Set loading state
+        isLoadingResponse = true
+        
+        // System prompt for medical intake
+        let systemPrompt = """
+        You are a friendly and professional nurse conducting a medical intake interview. 
+        Your role is to:
+        - Ask follow-up questions about symptoms
+        - Gather relevant health information
+        - Be empathetic and supportive
+        - Keep responses concise (2-3 sentences max)
+        - Guide the conversation to understand the patient's concerns
+        
+        Remember: You are NOT providing medical diagnosis or treatment advice, 
+        just gathering information for a healthcare provider.
+        """
+        
+        // Call AI (async)
+        Task {
+            do {
+                let aiResponseText = try await aiService.sendMessage(
+                    userMessage: trimmedText,
+                    conversationHistory: messages,
+                    systemPrompt: systemPrompt
+                )
+                
+                await MainActor.run {
+                    let aiResponse = ChatMessage(content: aiResponseText, isFromUser: false)
+                    messages.append(aiResponse)
+                    isLoadingResponse = false
+                }
+            } catch {
+                await MainActor.run {
+                    // Get detailed error message
+                    let errorDescription = (error as NSError).localizedDescription
+                    var errorMessage = "I'm having trouble connecting right now."
+                    
+                    // Provide more specific error messages
+                    if errorDescription.contains("401") || errorDescription.contains("Invalid API key") {
+                        errorMessage = "Invalid API key. Please check your API key in Config.swift"
+                    } else if errorDescription.contains("429") {
+                        errorMessage = "Rate limit exceeded. Please wait a moment and try again."
+                    } else if errorDescription.contains("insufficient_quota") {
+                        errorMessage = "Insufficient quota. Please check your OpenAI account billing."
+                    } else if errorDescription.contains("network") || errorDescription.contains("connection") {
+                        errorMessage = "Network error. Please check your internet connection and try again."
+                    } else {
+                        // Show the actual error for debugging
+                        errorMessage = "Error: \(errorDescription)"
+                    }
+                    
+                    let errorChatMessage = ChatMessage(
+                        content: errorMessage,
+                        isFromUser: false
+                    )
+                    messages.append(errorChatMessage)
+                    isLoadingResponse = false
+                }
+            }
         }
     }
 }

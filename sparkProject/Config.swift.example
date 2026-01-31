@@ -1,0 +1,16 @@
+//
+//  Config.swift.example
+//  sparkProject
+//
+//  Created by Azam Jawad on 2026-01-31.
+//
+//  Copy this file to Config.swift and add your API key
+//
+
+import Foundation
+
+struct Config {
+    // TODO: Replace with your OpenAI API key
+    // Get your key from: https://platform.openai.com/api-keys
+    static let openAIKey = "YOUR_API_KEY_HERE"
+}
