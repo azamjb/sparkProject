@@ -9,9 +9,17 @@ import SwiftUI
 
 @main
 struct sparkProjectApp: App {
+    @StateObject private var profileManager = UserProfileManager()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if profileManager.hasCompletedOnboarding() {
+                MainTabView()
+                    .environmentObject(profileManager)
+            } else {
+                OnboardingView()
+                    .environmentObject(profileManager)
+            }
         }
     }
 }
