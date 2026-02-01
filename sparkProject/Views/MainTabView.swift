@@ -774,6 +774,83 @@ struct WellnessCheckInfoBar: View {
 }
 
 
+struct PrivacyPolicyView: View {
+    var body: some View {
+        ZStack {
+            Color.white
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Text("Privacy Policy")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.top, 20)
+                        .padding(.horizontal, 20)
+                    
+                    VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("How We Use Your Data")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.black)
+                            
+                            Text("Your information is used only to support your health experience between your doctor and you. Our AI Chatbot only uses your data to answer your questions. The chatbot offers general health support and does not replace healthcare professionals or community care.")
+                                .font(.system(size: 16))
+                                .foregroundColor(.black)
+                                .lineSpacing(4)
+                            
+                            Text("Our advanced system follows HIPAA-protocols under Canadian privacy laws. We respect Indigenous data rights and your right to choose what you share.")
+                                .font(.system(size: 16))
+                                .foregroundColor(.black)
+                                .lineSpacing(4)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Your Privacy & Choices")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.black)
+                            
+                            VStack(alignment: .leading, spacing: 12) {
+                                PrivacyBulletPoint(text: "Your data is never sold or used for advertising")
+                                PrivacyBulletPoint(text: "You control what information you share and can withdraw consent at any time.")
+                                PrivacyBulletPoint(text: "Personal identifiers are removed whenever possible")
+                                PrivacyBulletPoint(text: "To request a copy of your data, please email careify@careify.com.")
+                                PrivacyBulletPoint(text: "Data is securely stored and protected. For any other inquiries, please email careify@careify.com.")
+                            }
+                        }
+                        
+                        Text("© 2026")
+                            .font(.system(size: 14))
+                            .foregroundColor(.black.opacity(0.6))
+                            .padding(.top, 8)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 100)
+                }
+            }
+        }
+        .navigationBarHidden(true)
+    }
+}
+
+struct PrivacyBulletPoint: View {
+    let text: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("•")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.black)
+                .padding(.top, 2)
+            
+            Text(text)
+                .font(.system(size: 16))
+                .foregroundColor(.black)
+                .lineSpacing(4)
+        }
+    }
+}
+
 struct ChatBubbleView: View {
     let message: ChatMessage
     

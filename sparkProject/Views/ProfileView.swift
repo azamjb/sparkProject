@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var profileManager: UserProfileManager
+    @State private var showPrivacyPolicy = false
 
     private let tealTopPadding: CGFloat = 10
     private let profileImageSize: CGFloat = 160
@@ -53,6 +54,14 @@ struct ProfileView: View {
                             HStack {
                                 Spacer()
                                 Menu {
+                                    Button {
+                                        showPrivacyPolicy = true
+                                    } label: {
+                                        Label("Privacy Policy", systemImage: "lock.shield")
+                                    }
+                                    
+                                    Divider()
+                                    
                                     Button(role: .destructive) {
                                         profileManager.clearProfile()
                                     } label: {
@@ -165,6 +174,19 @@ struct ProfileView: View {
             }
         }
         .navigationBarHidden(true)
+        .sheet(isPresented: $showPrivacyPolicy) {
+            NavigationView {
+                PrivacyPolicyView()
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showPrivacyPolicy = false
+                            }
+                        }
+                    }
+            }
+        }
     }
 }
 
@@ -404,4 +426,9 @@ struct RoundedCorner: Shape {
         )
         return Path(path.cgPath)
     }
+}
+
+#Preview {
+    ProfileView()
+        .environmentObject(UserProfileManager())
 }
