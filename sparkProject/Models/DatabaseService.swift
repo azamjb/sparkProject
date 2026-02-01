@@ -94,4 +94,36 @@ class DatabaseService {
             )
         }
     }
+    
+    func updateWellnessReport(userId: Int, report: String) async throws {
+        let url = URL(string: "\(baseURL)/users/\(userId)/wellness-report")!
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let reportData: [String: Any] = [
+            "wellnessReport": report
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: reportData)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(domain: "DatabaseService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
+        }
+        
+        if httpResponse.statusCode != 200 && httpResponse.statusCode != 204 {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            print("❌ Wellness report update failed - Status: \(httpResponse.statusCode), Error: \(errorMessage)")
+            throw NSError(
+                domain: "DatabaseService",
+                code: httpResponse.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode): \(errorMessage)"]
+            )
+        }
+        
+        print("✅ Wellness report updated successfully for user \(userId)")
+    }
 }

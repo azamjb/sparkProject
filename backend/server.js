@@ -102,6 +102,32 @@ app.post("/api/users", async (req, res) => {
   }
 });
 
+// Update wellness report endpoint - MUST come before /api/users/:userId
+app.put("/api/users/:userId/wellness-report", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { wellnessReport } = req.body;
+
+    console.log(`📝 Updating wellness report for user ${userId}`);
+
+    await pool.execute(
+      "UPDATE USERS SET wellnessReport = ? WHERE userId = ?",
+      [wellnessReport || "", userId]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Wellness report updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating wellness report:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Update user endpoint
 app.put("/api/users/:userId", async (req, res) => {
   try {

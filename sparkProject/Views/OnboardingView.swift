@@ -20,27 +20,27 @@ struct OnboardingView: View {
     @State private var currentMedications = ""
     @State private var hereditaryRiskPatterns = ""
     
-    let genders = ["Male", "Female", "Other"]
+    let genders = ["Male", "Female"]
     
     // Total steps: Welcome (0), Demographics (1), Medical Background (2), Chronic Conditions (3), Medications (4), Hereditary (5), Review (6)
     private let totalSteps = 7
     
     var body: some View {
         ZStack {
-            // Dark background matching profile page
-            Color.appBackground
+            // Consistent background color
+            Color.contentBackground
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Progress indicator
                 if currentStep > 0 {
                     ProgressView(value: Double(currentStep), total: Double(totalSteps - 1))
-                        .progressViewStyle(LinearProgressViewStyle(tint: Color.accentColor))
+                        .progressViewStyle(LinearProgressViewStyle(tint: Color.buttonPrimary))
                         .padding(.horizontal, 30)
                         .padding(.top, 20)
                 }
                 
-                // Content area with light teal background
+                // Content area
                 VStack(spacing: 0) {
                     Group {
                         if currentStep == 0 {
@@ -192,19 +192,19 @@ struct DemographicsView: View {
                 VStack(spacing: 10) {
                     Text("Tell Us About Yourself")
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.textPrimary)
+                        .foregroundColor(.black)
                         .padding(.top, 40)
                     
                     Text("We'll start with some basic information")
                         .font(.system(size: 16))
-                        .foregroundColor(.textPrimary.opacity(0.7))
+                        .foregroundColor(.black.opacity(0.7))
                 }
                 
                 VStack(alignment: .leading, spacing: 20) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Name")
                             .font(.headline)
-                            .foregroundColor(.textPrimary)
+                            .foregroundColor(.black)
                         TextField("Enter your name", text: $name)
                             .textFieldStyle(CustomTextFieldStyle())
                     }
@@ -212,17 +212,17 @@ struct DemographicsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Age")
                             .font(.headline)
-                            .foregroundColor(.textPrimary)
+                            .foregroundColor(.black)
                         TextField("Enter your age", text: $age)
                             .keyboardType(.numberPad)
                             .textFieldStyle(CustomTextFieldStyle())
                     }
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Gender")
+                        Text("Biological Sex")
                             .font(.headline)
-                            .foregroundColor(.textPrimary)
-                        Picker("Gender", selection: $gender) {
+                            .foregroundColor(.black)
+                        Picker("Biological Sex", selection: $gender) {
                             ForEach(genders, id: \.self) { genderOption in
                                 Text(genderOption).tag(genderOption)
                             }
@@ -235,7 +235,7 @@ struct DemographicsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Height")
                             .font(.headline)
-                            .foregroundColor(.textPrimary)
+                            .foregroundColor(.black)
                         TextField("e.g., 5'9\"", text: $height)
                             .textFieldStyle(CustomTextFieldStyle())
                     }
@@ -243,7 +243,7 @@ struct DemographicsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Weight")
                             .font(.headline)
-                            .foregroundColor(.textPrimary)
+                            .foregroundColor(.black)
                         TextField("e.g., 160lbs", text: $weight)
                             .textFieldStyle(CustomTextFieldStyle())
                     }
@@ -304,12 +304,12 @@ struct SingleQuestionView: View {
                 VStack(spacing: 10) {
                     Text(title)
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.textPrimary)
+                        .foregroundColor(.black)
                         .padding(.top, 40)
                     
                     Text(subtitle)
                         .font(.system(size: 18))
-                        .foregroundColor(.textPrimary.opacity(0.7))
+                        .foregroundColor(.black.opacity(0.7))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 30)
                 }
@@ -376,45 +376,64 @@ struct ReviewView: View {
     let onComplete: () -> Void
     let onBack: () -> Void
     
+    private func formatWeight(_ weight: String) -> String {
+        if weight.isEmpty {
+            return ""
+        }
+        let lowerWeight = weight.lowercased()
+        if lowerWeight.contains("lbs") || lowerWeight.contains("lb") {
+            return weight
+        }
+        return "\(weight) lbs"
+    }
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 25) {
                 VStack(spacing: 10) {
                     Text("Review Your Information")
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.textPrimary)
+                        .foregroundColor(.black)
                         .padding(.top, 40)
                     
                     Text("Please review and confirm your details")
                         .font(.system(size: 16))
-                        .foregroundColor(.textPrimary.opacity(0.7))
+                        .foregroundColor(.black.opacity(0.7))
                 }
                 
-                VStack(alignment: .leading, spacing: 15) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text("Basic Information")
                         .font(.headline)
-                        .foregroundColor(.textPrimary)
+                        .foregroundColor(.black)
                     
-                    ReviewRow(label: "Name", value: name)
-                    ReviewRow(label: "Age", value: age)
-                    ReviewRow(label: "Gender", value: gender)
-                    ReviewRow(label: "Height", value: height)
-                    ReviewRow(label: "Weight", value: weight)
+                    // Combined rows for more compact display
+                    HStack {
+                        ReviewRow(label: "Name", value: name, compact: true)
+                        ReviewRow(label: "Age", value: age, compact: true)
+                    }
+                    
+                    HStack {
+                        ReviewRow(label: "Biological Sex", value: gender, compact: true)
+                        ReviewRow(label: "Height", value: height, compact: true)
+                    }
+                    
+                    ReviewRow(label: "Weight", value: formatWeight(weight))
                     
                     Divider()
-                        .background(Color.textPrimary.opacity(0.3))
+                        .background(Color.black.opacity(0.3))
+                        .padding(.vertical, 8)
                     
                     Text("Medical Information")
                         .font(.headline)
-                        .foregroundColor(.textPrimary)
-                        .padding(.top, 10)
+                        .foregroundColor(.black)
+                        .padding(.top, 4)
                     
                     ReviewRow(label: "Medical Background", value: medicalBackground.isEmpty ? "None" : medicalBackground)
                     ReviewRow(label: "Chronic Conditions", value: chronicConditions.isEmpty ? "None" : chronicConditions)
                     ReviewRow(label: "Current Medications", value: currentMedications.isEmpty ? "None" : currentMedications)
                     ReviewRow(label: "Hereditary Risk Patterns", value: hereditaryRiskPatterns.isEmpty ? "None" : hereditaryRiskPatterns)
                 }
-                .padding(30)
+                .padding(20)
                 .background(Color.cardBackground)
                 .cornerRadius(20)
                 .padding(.horizontal, 20)
@@ -452,19 +471,20 @@ struct ReviewView: View {
 struct ReviewRow: View {
     let label: String
     let value: String
+    var compact: Bool = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(.subheadline)
-                .foregroundColor(.textPrimary.opacity(0.7))
+                .foregroundColor(.black.opacity(0.7))
             Text(value)
                 .font(.body)
-                .foregroundColor(.textPrimary)
+                .foregroundColor(.black)
                 .fontWeight(.medium)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 8)
+        .frame(maxWidth: compact ? .infinity : nil, alignment: .leading)
+        .padding(.vertical, compact ? 4 : 8)
     }
 }
 

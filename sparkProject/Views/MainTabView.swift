@@ -155,6 +155,7 @@ struct TabBarButton: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 49)
+                .padding(.top, 4) // Add space between indicator and content
                 
                 // Visual indicator - colored bar at top
                 if isSelected {
@@ -192,12 +193,16 @@ struct AppointmentView: View {
 }
 
 struct WellnessCheckView: View {
+    @EnvironmentObject var profileManager: UserProfileManager
     @State private var messages: [ChatMessage] = []
     @State private var inputText: String = ""
     @State private var isLoadingResponse = false
+    @State private var isConversationComplete = false
+    @State private var followUpCount = 0
     @FocusState private var isInputFocused: Bool
     
     private let aiService = AIService(apiKey: Config.openAIKey)
+    private let databaseService = DatabaseService()
     
     var body: some View {
         ZStack {
@@ -294,8 +299,8 @@ struct WellnessCheckView: View {
                                     .background(Color(white: 0.9)) // Light grey background
                                     .cornerRadius(12)
                             }
-                            .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingResponse)
-                            .opacity((inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingResponse) ? 0.5 : 1.0)
+                            .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingResponse || isConversationComplete)
+                            .opacity((inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingResponse || isConversationComplete) ? 0.5 : 1.0)
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
@@ -317,6 +322,8 @@ struct WellnessCheckView: View {
                     isFromUser: false
                 )
                 messages.append(welcomeMessage)
+                followUpCount = 0
+                isConversationComplete = false
             }
         }
     }
@@ -372,21 +379,32 @@ struct WellnessCheckView: View {
         // Set loading state
         isLoadingResponse = true
         
+        // Count AI messages to track follow-up questions
+        let aiMessageCount = messages.filter { !$0.isFromUser }.count
+        
         // System prompt for medical intake
         let systemPrompt = """
-        You are a friendly and professional healthcare assistant conducting a medical intake interview. 
-        Your role is to:
-        - Ask follow-up questions about symptoms
-        - Gather relevant health information
-        - Be empathetic and supportive
-        - Keep responses concise (1-2 sentences max)
-        - Guide the conversation to understand the patient's concerns
-        - After a maximum of 2 follow up questions, determine if the user requires a doctors appointment. If they DO require an appointment, say 'You are recommended to book a doctors appointment, would you like to do so?'. if they may or may not require an appointment, say 'would you like to book a doctors appointment?, and if they DONT require an appointment, say 'Thank you, your wellness check is complete'. If the user is prompted to answer whether or not they want an appointment, wait till they answer and then say 'Thank you, your wellness check is complete'.
+        You are a friendly and professional healthcare assistant conducting a wellness check interview.
         
-        Remember: Do not ask more than 2 follow up questions before asking final question about booking doctors appointment. Don't ask questions if unecessary.
-        Remember: Do not ask the user to provide personal identifiable information / irrelevant information
-        Remember: You are NOT providing medical diagnosis or treatment advice, 
-        just gathering information for a healthcare provider. 
+        CONVERSATION FLOW:
+        1. The user has already shared their initial symptoms/concerns.
+        2. You may ask up to 4 follow-up questions to better understand their symptoms (you have asked \(aiMessageCount - 1) follow-up questions so far).
+        3. After maximum 4 follow-up questions, you MUST make an appointment recommendation:
+           - If symptoms are serious/urgent: Say "You are recommended to book a doctor's appointment. Would you like to do so?"
+           - If symptoms are mild/moderate: Say "Would you like to book a doctor's appointment?"
+           - If no appointment needed: Say "Thank you for completing the wellness check."
+        4. If you asked about booking an appointment, wait for the user's response (yes/no), then say: "Thank you for completing the wellness check."
+        
+        IMPORTANT RULES:
+        - Maximum 2 follow-up questions total (not including the welcome message)
+        - Keep responses concise (1-2 sentences max)
+        - Be empathetic and supportive
+        - Do NOT ask for personal identifiable information
+        - Do NOT provide medical diagnosis or treatment advice
+        - When the conversation is complete, you MUST end with exactly: "Thank you for completing the wellness check."
+        - Count your follow-up questions carefully - after 2, you must make the appointment recommendation
+        
+        Current conversation: You have asked \(aiMessageCount - 1) follow-up question(s) so far.
         """
         
         // Call AI (async)
@@ -402,6 +420,15 @@ struct WellnessCheckView: View {
                     let aiResponse = ChatMessage(content: aiResponseText, isFromUser: false)
                     messages.append(aiResponse)
                     isLoadingResponse = false
+                    
+                    // Check if conversation is complete
+                    if aiResponseText.lowercased().contains("thank you for completing the wellness check") {
+                        isConversationComplete = true
+                        // Generate and save report
+                        Task {
+                            await generateAndSaveReport()
+                        }
+                    }
                 }
             } catch {
                 await MainActor.run {
@@ -429,6 +456,67 @@ struct WellnessCheckView: View {
                     )
                     messages.append(errorChatMessage)
                     isLoadingResponse = false
+                }
+            }
+        }
+    }
+    
+    private func generateAndSaveReport() async {
+        guard let userId = profileManager.userProfile?.userId else {
+            print("❌ No user ID found, cannot save report")
+            print("💡 User profile: \(profileManager.userProfile?.name ?? "nil")")
+            print("💡 Make sure user completed onboarding and was saved to database")
+            return
+        }
+        
+        print("📝 Generating wellness report for user ID: \(userId)")
+        
+        // Generate report from conversation
+        let conversationText = messages.map { message in
+            "\(message.isFromUser ? "User" : "Assistant"): \(message.content)"
+        }.joined(separator: "\n")
+        
+        let reportPrompt = """
+        Based on the following wellness check conversation, generate a concise report (2-3 sentences) that includes:
+        1. A brief overview of the user's symptoms/concerns
+        2. Whether a doctor's appointment was recommended (yes/no)
+        3. Whether the user agreed to book an appointment (if applicable)
+        
+        Keep it professional and concise. Do not include personal details beyond symptoms.
+        Format as a brief summary suitable for a medical record.
+        
+        Conversation:
+        \(conversationText)
+        
+        Generate only the report text, nothing else:
+        """
+        
+        do {
+            print("🤖 Calling AI to generate report...")
+            let report = try await aiService.sendMessage(
+                userMessage: "Generate the wellness check report based on the conversation above.",
+                conversationHistory: [],
+                systemPrompt: reportPrompt
+            )
+            
+            let cleanReport = report.trimmingCharacters(in: .whitespacesAndNewlines)
+            print("📄 Generated report: \(cleanReport.prefix(100))...")
+            
+            // Save report to database
+            print("💾 Saving report to database...")
+            try await databaseService.updateWellnessReport(userId: userId, report: cleanReport)
+            
+            await MainActor.run {
+                print("✅ Wellness report saved to database successfully!")
+                print("📋 Report preview: \(cleanReport.prefix(50))...")
+            }
+        } catch {
+            print("❌ Error generating/saving report: \(error.localizedDescription)")
+            if let nsError = error as NSError? {
+                print("   Error domain: \(nsError.domain)")
+                print("   Error code: \(nsError.code)")
+                if let userInfo = nsError.userInfo as? [String: Any] {
+                    print("   Error details: \(userInfo)")
                 }
             }
         }
