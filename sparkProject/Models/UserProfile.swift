@@ -9,6 +9,7 @@ import Foundation
 import Combine
 
 struct UserProfile: Codable {
+    var userId: Int? // Database user ID
     var name: String
     var age: Int
     var gender: String
@@ -29,6 +30,7 @@ class UserProfileManager: ObservableObject {
     @Published var userProfile: UserProfile?
     
     private let userDefaultsKey = "userProfile"
+    private let databaseService = DatabaseService()
     
     init() {
         loadProfile()
@@ -36,8 +38,38 @@ class UserProfileManager: ObservableObject {
     
     func saveProfile(_ profile: UserProfile) {
         self.userProfile = profile
+        
+        // Save to UserDefaults for local storage
         if let encoded = try? JSONEncoder().encode(profile) {
             UserDefaults.standard.set(encoded, forKey: userDefaultsKey)
+        }
+        
+        // Save to MySQL database
+        Task {
+            do {
+                if let userId = profile.userId {
+                    // Update existing user
+                    try await databaseService.updateUser(userId: userId, profile)
+                    print("✅ User updated in database")
+                } else {
+                    // Create new user
+                    let userId = try await databaseService.saveUser(profile)
+                    var updatedProfile = profile
+                    updatedProfile.userId = userId
+                    
+                    await MainActor.run {
+                        self.userProfile = updatedProfile
+                        // Update UserDefaults with userId
+                        if let encoded = try? JSONEncoder().encode(updatedProfile) {
+                            UserDefaults.standard.set(encoded, forKey: self.userDefaultsKey)
+                        }
+                    }
+                    print("✅ User saved to database with ID: \(userId)")
+                }
+            } catch {
+                print("❌ Error saving to database: \(error.localizedDescription)")
+                // Continue anyway - local storage still works
+            }
         }
     }
     

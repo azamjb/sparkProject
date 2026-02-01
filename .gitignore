@@ -91,3 +91,7 @@ iOSInjectionProject/
 
 # API Keys and Secrets
 Config.swift
+
+# Backend dependencies
+backend/node_modules/
+backend/package-lock.json
