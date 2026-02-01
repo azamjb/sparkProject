@@ -10,7 +10,7 @@ import UIKit
 
 struct MainTabView: View {
     @EnvironmentObject var profileManager: UserProfileManager
-    @State private var tabSelection = 0
+    @State private var tabSelection = 1
 
     init() {
         setupTabBarAppearance()
@@ -65,11 +65,11 @@ struct MainTabView: View {
                 // Content views
                 Group {
                     if tabSelection == 0 {
-                        AppointmentView()
+                    AppointmentView()
                     } else if tabSelection == 1 {
-                        ProfileView()
+                    ProfileView()
                     } else {
-                        WellnessCheckView()
+                    WellnessCheckView()
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -88,7 +88,6 @@ struct MainTabView: View {
     }
 }
 
-// MARK: - Custom Tab Bar
 struct CustomTabBar: View {
     @Binding var selectedTab: Int
     
@@ -111,13 +110,13 @@ struct CustomTabBar: View {
                 
                 TabBarButton(
                     icon: "heart.circle",
-                    title: "Wellness Check",
+                    title: "Wellness",
                     isSelected: selectedTab == 2,
                     action: { selectedTab = 2 }
                 )
             }
             .frame(height: 49)
-            .background(Color.contentBackground)
+            .background(Color.white)
             .overlay(
                 Rectangle()
                     .frame(height: 0.5)
@@ -126,10 +125,10 @@ struct CustomTabBar: View {
             )
             
             // Bottom padding
-            Color.contentBackground
+            Color.white
                 .frame(height: 16)
         }
-        .background(Color.contentBackground)
+        .background(Color.white)
     }
 }
 
@@ -143,28 +142,19 @@ struct TabBarButton: View {
         Button(action: {
             action()
         }) {
-            ZStack(alignment: .top) {
-                VStack(spacing: 4) {
-                    Image(systemName: icon)
-                        .font(.system(size: 22))
-                        .foregroundColor(.black)
-                    
-                    Text(title)
-                        .font(.system(size: 11, weight: isSelected ? .medium : .regular))
-                        .foregroundColor(.black)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 49)
-                .padding(.top, 4) // Add space between indicator and content
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 22))
+                    .foregroundColor(isSelected ? .buttonPrimary : .black)
                 
-                // Visual indicator - colored bar at top
-                if isSelected {
-                    Rectangle()
-                        .fill(Color.buttonPrimary)
-                        .frame(height: 3)
-                        .frame(maxWidth: .infinity)
-                }
+                Text(title)
+                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
+                    .foregroundColor(isSelected ? .buttonPrimary : .black)
             }
+            .frame(maxWidth: .infinity)
+            .frame(height: 49)
+            .background(isSelected ? Color.buttonPrimary.opacity(0.15) : Color.clear)
+            .cornerRadius(12)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -173,22 +163,142 @@ struct TabBarButton: View {
 struct AppointmentView: View {
     var body: some View {
         ZStack {
-            Color.contentBackground
+            Color.white
                 .ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                Text("Appointments")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.textPrimary)
-                    .padding(.top, 40)
-
-                Text("Coming soon...")
-                    .font(.system(size: 18))
-                    .foregroundColor(.textPrimary.opacity(0.7))
+            VStack(spacing: 0) {
+                // Title
+                Text("Upcoming Appointment")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(.black)
+                    .padding(.top, 10)
+                    .padding(.bottom, 30)
+                
+                // Date Card
+                VStack {
+                    Text("February 2nd, 2026")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.black)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 16)
+                .background(Color.tropicalTeal)
+                .cornerRadius(18)
+                .padding(.horizontal, 30)
+                .padding(.bottom, 24)
+                
+                // Appointment Details Card
+                VStack(spacing: 0) {
+                    AppointmentDetailRow(
+                        label: "Time",
+                        value: "3:00 pm",
+                        showChevron: false
+                    )
+                    
+                    Divider()
+                        .background(Color.black.opacity(0.15))
+                    
+                    AppointmentDetailRow(
+                        label: "Location",
+                        value: "449 Rippleton Rd",
+                        showChevron: false
+                    )
+                    
+                    Divider()
+                        .background(Color.black.opacity(0.15))
+                    
+                    AppointmentDetailRow(
+                        label: "Topic",
+                        value: "",
+                        showChevron: true
+                    )
+                    
+                    Divider()
+                        .background(Color.black.opacity(0.15))
+                    
+                    AppointmentDetailRow(
+                        label: "Travel Options",
+                        value: "",
+                        showChevron: true
+                    )
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color.tropicalTeal)
+                .cornerRadius(18)
+                .padding(.horizontal, 30)
+                .padding(.bottom, 50)
+                
+                // Action Buttons
+                HStack(spacing: 15) {
+                    Button(action: {
+                        // Reschedule action
+                    }) {
+                        Text("Reschedule")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.buttonPrimary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.buttonPrimary, lineWidth: 2)
+                            )
+                    }
+                    
+                    Button(action: {
+                        // Contact action
+                    }) {
+                        Text("Contact")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.buttonPrimary)
+                            .cornerRadius(12)
+                    }
+                }
+                .padding(.horizontal, 30)
+                .padding(.bottom, 50)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationBarHidden(true)
+    }
+}
+
+struct AppointmentDetailRow: View {
+    let label: String
+    let value: String
+    let showChevron: Bool
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundColor(.black)
+            
+            Spacer()
+            
+            if !value.isEmpty {
+                Text(value)
+                    .font(.body)
+                    .foregroundColor(.black)
+            }
+            
+            if showChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.black)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
     }
 }
 
@@ -234,7 +344,7 @@ struct WellnessCheckView: View {
     
     var body: some View {
         ZStack {
-            Color.contentBackground
+            Color.white
                 .ignoresSafeArea()
 
             GeometryReader { geo in
@@ -250,20 +360,20 @@ struct WellnessCheckView: View {
                     - outerVerticalPadding
                     - 20 // extra breathing room
                 
-                let chatCardHeight:CGFloat = 540
+                let chatCardHeight:CGFloat = 480
 
                 VStack(spacing: 0) {
                     // Header
-                    Text("Wellness Check")
-                        .font(.system(size: 32, weight: .bold))
+                Text("Wellness Check")
+                    .font(.system(size: 32, weight: .bold))
                         .foregroundColor(.black)
                         .padding(.top, 20)
                         .padding(.bottom, 30)
                         .frame(maxWidth: .infinity)
 
-                    // Chat Card (TOP beige box) — constrained so it doesn't push the info bar off-screen
+                    // Chat Card (TOP teal box) — constrained so it doesn't push the info bar off-screen
                     ZStack {
-                        Color.cardBackground
+                        Color.tropicalTeal
                             .cornerRadius(20)
                         
                         VStack(spacing: 0) {
@@ -300,12 +410,13 @@ struct WellnessCheckView: View {
                                         }
                                     }
                                     .padding(.horizontal, 20)
-                                    .padding(.bottom, 16)
+                                    .padding(.top, 16)
+                                    .padding(.bottom, 40)
                                 }
                                 .onChange(of: messages.count) { _ in
                                     if let lastMessage = messages.last {
                                         withAnimation(.easeOut(duration: 0.3)) {
-                                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                            proxy.scrollTo(lastMessage.id, anchor: .center)
                                         }
                                     }
                                 }
@@ -313,12 +424,13 @@ struct WellnessCheckView: View {
                                     if loading {
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                             withAnimation {
-                                                proxy.scrollTo("loading", anchor: .bottom)
+                                                proxy.scrollTo("loading", anchor: .center)
                                             }
                                         }
                                     }
                                 }
                             }
+                            .padding(.bottom, 16)
                             
                             // Input area - fixed at bottom
                             HStack(spacing: 12) {
@@ -328,7 +440,7 @@ struct WellnessCheckView: View {
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 8)
                                     .frame(height: 36)
-                                    .background(Color(white: 0.9)) // Light grey background
+                                    .background(Color.white) // White background for contrast on teal
                                     .cornerRadius(20)
                                     .focused($isInputFocused)
                                     .onSubmit {
@@ -340,7 +452,7 @@ struct WellnessCheckView: View {
                                         .font(.system(size: 16, weight: .semibold))
                                         .foregroundColor(.black)
                                         .frame(width: 36, height: 36)
-                                        .background(Color(white: 0.9)) // Light grey background
+                                        .background(Color.white) // White background for contrast on teal
                                         .cornerRadius(12)
                                 }
                                 .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingResponse || isConversationComplete)
@@ -352,7 +464,7 @@ struct WellnessCheckView: View {
                     }
                     .padding(.horizontal, 20)
                     .frame(maxWidth: .infinity)
-                    .frame(height: chatCardHeight) // ✅ keeps the top box from growing too tall
+                    .frame(height: chatCardHeight)
 
                     // Wellness Check Info Bar (BOTTOM beige box) — now guaranteed room
                     WellnessCheckInfoBar(
@@ -469,16 +581,16 @@ struct WellnessCheckView: View {
            - If symptoms are serious/urgent: Say "You are recommended to book a doctor's appointment. Would you like to do so?"
            - If symptoms are mild/moderate: Say "Would you like to book a doctor's appointment?"
            - If no appointment needed: Say "Thank you for completing the wellness check."
-        4. If you asked about booking an appointment, wait for the user's response (yes/no), then say: "Thank you for completing the wellness check."
+        4. If you asked about booking an appointment, wait for the user's response (yes/no), then say: "Thank you for completing the wellness check. A representative will be in touch about next steps"
         
         IMPORTANT RULES:
-        - Maximum 2 follow-up questions total (not including the welcome message)
+        - Maximum 4 follow-up questions total (not including the welcome message)
         - Keep responses concise (1-2 sentences max)
         - Be empathetic and supportive
         - Do NOT ask for personal identifiable information
         - Do NOT provide medical diagnosis or treatment advice
         - When the conversation is complete, you MUST end with exactly: "Thank you for completing the wellness check."
-        - Count your follow-up questions carefully - after 2, you must make the appointment recommendation
+        - Count your follow-up questions carefully - after 4, you must make the appointment recommendation
         
         Current conversation: You have asked \(aiMessageCount - 1) follow-up question(s) so far.
         """
@@ -631,7 +743,7 @@ struct WellnessCheckInfoBar: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Next Wellness Check")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.black.opacity(0.7))
+                    .foregroundColor(.black.opacity(0.6))
                 
                 Text(nextCheckDate)
                     .font(.system(size: 16, weight: .semibold))
@@ -643,23 +755,24 @@ struct WellnessCheckInfoBar: View {
             VStack(alignment: .trailing, spacing: 4) {
                 Text("Frequency")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.black.opacity(0.7))
+                    .foregroundColor(.black.opacity(0.6))
                 
                 Text(frequency)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.buttonPrimary)
+                    .foregroundColor(.white)
             }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .background(Color.cardBackground)
+        .background(Color.tropicalTeal)
         .cornerRadius(16)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.buttonPrimary.opacity(0.3), lineWidth: 1)
+                .stroke(Color.white.opacity(0.25), lineWidth: 1)
         )
     }
 }
+
 
 struct ChatBubbleView: View {
     let message: ChatMessage
@@ -677,8 +790,8 @@ struct ChatBubbleView: View {
                 .padding(.vertical, 12)
                 .background(
                     message.isFromUser
-                        ? Color.tropicalTeal.opacity(0.3)
-                        : Color(white: 0.9) // Light grey for AI messages
+                        ? Color(red: 217/255, green: 217/255, blue: 217/255) // #D9D9D9 light grey background for user messages
+                        : Color.mutedTeal // #8FC0A9 for AI messages
                 )
                 .cornerRadius(16)
                 .frame(maxWidth: UIScreen.main.bounds.width * 0.75, alignment: message.isFromUser ? .trailing : .leading)

@@ -28,7 +28,7 @@ struct OnboardingView: View {
     var body: some View {
         ZStack {
             // Consistent background color
-            Color.contentBackground
+            Color.white
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -132,7 +132,6 @@ struct OnboardingView: View {
     }
 }
 
-// MARK: - Welcome View
 struct WelcomeView: View {
     let onNext: () -> Void
     
@@ -147,11 +146,11 @@ struct WelcomeView: View {
                 
                 Text("Welcome to Spark")
                     .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.textPrimary)
+                    .foregroundColor(.black)
                 
                 Text("Let's create your personalized health profile")
                     .font(.system(size: 18))
-                    .foregroundColor(.textPrimary.opacity(0.7))
+                    .foregroundColor(.black.opacity(0.7))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }
@@ -171,11 +170,10 @@ struct WelcomeView: View {
             .padding(.bottom, 50)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.contentBackground)
+        .background(Color.white)
     }
 }
 
-// MARK: - Demographics View
 struct DemographicsView: View {
     @Binding var name: String
     @Binding var age: String
@@ -222,14 +220,7 @@ struct DemographicsView: View {
                         Text("Biological Sex")
                             .font(.headline)
                             .foregroundColor(.black)
-                        Picker("Biological Sex", selection: $gender) {
-                            ForEach(genders, id: \.self) { genderOption in
-                                Text(genderOption).tag(genderOption)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                        .background(Color.white.opacity(0.5))
-                        .cornerRadius(10)
+                        NoAnimationSegmentedPicker(selection: $gender, options: genders)
                     }
                     
                     VStack(alignment: .leading, spacing: 8) {
@@ -249,7 +240,7 @@ struct DemographicsView: View {
                     }
                 }
                 .padding(30)
-                .background(Color.cardBackground)
+                .background(Color.tropicalTeal)
                 .cornerRadius(20)
                 .padding(.horizontal, 20)
                 
@@ -285,11 +276,10 @@ struct DemographicsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.contentBackground)
+        .background(Color.white)
     }
 }
 
-// MARK: - Single Question View
 struct SingleQuestionView: View {
     let title: String
     let subtitle: String
@@ -318,7 +308,8 @@ struct SingleQuestionView: View {
                     ZStack(alignment: .topLeading) {
                         if text.isEmpty {
                             Text(placeholder)
-                                .foregroundColor(.gray.opacity(0.5))
+                                .foregroundColor(.black.opacity(0.4))
+                                .font(.system(size: 16, weight: .medium))
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 8)
                         }
@@ -327,7 +318,7 @@ struct SingleQuestionView: View {
                             .scrollContentBackground(.hidden)
                     }
                     .padding(15)
-                    .background(Color.white.opacity(0.9))
+                    .background(Color.buttonPrimary.opacity(0.2))
                     .cornerRadius(15)
                 }
                 .padding(.horizontal, 20)
@@ -358,11 +349,10 @@ struct SingleQuestionView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.contentBackground)
+        .background(Color.white)
     }
 }
 
-// MARK: - Review View
 struct ReviewView: View {
     let name: String
     let age: String
@@ -401,40 +391,76 @@ struct ReviewView: View {
                         .foregroundColor(.black.opacity(0.7))
                 }
                 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Basic Information")
-                        .font(.headline)
-                        .foregroundColor(.black)
-                    
-                    // Combined rows for more compact display
-                    HStack {
-                        ReviewRow(label: "Name", value: name, compact: true)
-                        ReviewRow(label: "Age", value: age, compact: true)
+                VStack(alignment: .leading, spacing: 24) {
+                    // Basic Information Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Basic Information")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.bottom, 8)
+                        
+                        VStack(spacing: 0) {
+                            HStack(spacing: 0) {
+                                ReviewRow(label: "Name", value: name, compact: true)
+                                Divider()
+                                    .frame(height: 50)
+                                    .background(Color.black.opacity(0.1))
+                                ReviewRow(label: "Age", value: age, compact: true)
+                            }
+                            
+                            Divider()
+                                .background(Color.black.opacity(0.1))
+                            
+                            HStack(spacing: 0) {
+                                ReviewRow(label: "Biological Sex", value: gender, compact: true)
+                                Divider()
+                                    .frame(height: 50)
+                                    .background(Color.black.opacity(0.1))
+                                ReviewRow(label: "Height", value: height, compact: true)
+                            }
+                            
+                            Divider()
+                                .background(Color.black.opacity(0.1))
+                            
+                            ReviewRow(label: "Weight", value: formatWeight(weight))
+                        }
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                        )
                     }
                     
-                    HStack {
-                        ReviewRow(label: "Biological Sex", value: gender, compact: true)
-                        ReviewRow(label: "Height", value: height, compact: true)
+                    // Medical Information Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Medical Information")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.bottom, 8)
+                        
+                        VStack(spacing: 0) {
+                            ReviewRow(label: "Medical Background", value: medicalBackground.isEmpty ? "None" : medicalBackground)
+                            Divider()
+                                .background(Color.black.opacity(0.1))
+                            ReviewRow(label: "Chronic Conditions", value: chronicConditions.isEmpty ? "None" : chronicConditions)
+                            Divider()
+                                .background(Color.black.opacity(0.1))
+                            ReviewRow(label: "Current Medications", value: currentMedications.isEmpty ? "None" : currentMedications)
+                            Divider()
+                                .background(Color.black.opacity(0.1))
+                            ReviewRow(label: "Hereditary Risk Patterns", value: hereditaryRiskPatterns.isEmpty ? "None" : hereditaryRiskPatterns)
+                        }
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                        )
                     }
-                    
-                    ReviewRow(label: "Weight", value: formatWeight(weight))
-                    
-                    Divider()
-                        .background(Color.black.opacity(0.3))
-                        .padding(.vertical, 8)
-                    
-                    Text("Medical Information")
-                        .font(.headline)
-                        .foregroundColor(.black)
-                        .padding(.top, 4)
-                    
-                    ReviewRow(label: "Medical Background", value: medicalBackground.isEmpty ? "None" : medicalBackground)
-                    ReviewRow(label: "Chronic Conditions", value: chronicConditions.isEmpty ? "None" : chronicConditions)
-                    ReviewRow(label: "Current Medications", value: currentMedications.isEmpty ? "None" : currentMedications)
-                    ReviewRow(label: "Hereditary Risk Patterns", value: hereditaryRiskPatterns.isEmpty ? "None" : hereditaryRiskPatterns)
                 }
                 .padding(20)
-                .background(Color.cardBackground)
+                .background(Color.buttonPrimary.opacity(0.15))
                 .cornerRadius(20)
                 .padding(.horizontal, 20)
                 
@@ -464,7 +490,7 @@ struct ReviewView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.contentBackground)
+        .background(Color.white)
     }
 }
 
@@ -474,17 +500,20 @@ struct ReviewRow: View {
     var compact: Bool = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(label)
-                .font(.subheadline)
-                .foregroundColor(.black.opacity(0.7))
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.black.opacity(0.6))
+                .frame(maxWidth: .infinity, alignment: .leading)
             Text(value)
-                .font(.body)
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.black)
-                .fontWeight(.medium)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .multilineTextAlignment(.leading)
         }
-        .frame(maxWidth: compact ? .infinity : nil, alignment: .leading)
-        .padding(.vertical, compact ? 4 : 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, compact ? 12 : 12)
+        .padding(.horizontal, compact ? 12 : 12)
     }
 }
 
@@ -494,5 +523,43 @@ struct CustomTextFieldStyle: TextFieldStyle {
             .padding()
             .background(Color.white.opacity(0.9))
             .cornerRadius(10)
+    }
+}
+
+struct NoAnimationSegmentedPicker: UIViewRepresentable {
+    @Binding var selection: String
+    let options: [String]
+    
+    func makeUIView(context: Context) -> UISegmentedControl {
+        let picker = UISegmentedControl(items: options)
+        picker.selectedSegmentIndex = options.firstIndex(of: selection) ?? 0
+        picker.addTarget(context.coordinator, action: #selector(Coordinator.valueChanged(_:)), for: .valueChanged)
+        return picker
+    }
+    
+    func updateUIView(_ uiView: UISegmentedControl, context: Context) {
+        if let index = options.firstIndex(of: selection), index != uiView.selectedSegmentIndex {
+            UIView.performWithoutAnimation {
+                uiView.selectedSegmentIndex = index
+            }
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject {
+        var parent: NoAnimationSegmentedPicker
+        
+        init(_ parent: NoAnimationSegmentedPicker) {
+            self.parent = parent
+        }
+        
+        @objc func valueChanged(_ sender: UISegmentedControl) {
+            UIView.performWithoutAnimation {
+                parent.selection = parent.options[sender.selectedSegmentIndex]
+            }
+        }
     }
 }

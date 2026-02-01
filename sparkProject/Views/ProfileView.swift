@@ -10,12 +10,11 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var profileManager: UserProfileManager
 
-    // ✅ Adjust this to match the screenshot exactly (smaller = less blue)
-    private let tealHeight: CGFloat = 65
-    private let greenBandHeight: CGFloat = 140
+    private let tealTopPadding: CGFloat = 10
+    private let profileImageSize: CGFloat = 160
+    private let textAreaHeight: CGFloat = 80
 
     init() {
-        // ✅ Make the tab bar background NOT white
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(Color.contentBackground)
@@ -31,26 +30,23 @@ struct ProfileView: View {
     var body: some View {
         GeometryReader { proxy in
             let topInset = proxy.safeAreaInsets.top
-            let boundaryY = topInset + tealHeight
-            let headerTotalHeight = topInset + tealHeight + greenBandHeight
+
+            let boundaryY = topInset + tealTopPadding + (profileImageSize / 2)
+            let headerTotalHeight = topInset + tealTopPadding + profileImageSize + textAreaHeight
 
             ZStack(alignment: .top) {
-
-                // ✅ Teal is always behind the top (and there is NO ScrollView now, so no pull-down anyway)
                 Color.tropicalTeal
                     .ignoresSafeArea()
 
-                // ✅ Green fills from boundary to bottom (no white anywhere)
-                Color.contentBackground
-                    .frame(height: proxy.size.height - boundaryY)
+                Color.white
+                    .frame(height: max(0, proxy.size.height - boundaryY))
                     .frame(maxWidth: .infinity)
                     .offset(y: boundaryY)
                     .ignoresSafeArea(edges: .bottom)
 
-                // ✅ No ScrollView = no dragging
+                // Content (no ScrollView, no dragging)
                 VStack(spacing: 0) {
 
-                    // MARK: - Header area
                     ZStack {
                         // Hamburger menu (top-right)
                         VStack {
@@ -73,15 +69,13 @@ struct ProfileView: View {
                             Spacer()
                         }
 
-                        // Profile content overlapping the boundary
                         if let profile = profileManager.userProfile {
                             VStack(spacing: 4) {
                                 Image("profile")
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
-                                    .frame(width: 140, height: 140)
+                                    .frame(width: profileImageSize, height: profileImageSize)
                                     .clipShape(Circle())
-                                    .overlay(Circle().stroke(Color.white, lineWidth: 4))
                                     .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
 
                                 Text(profile.name)
@@ -92,14 +86,11 @@ struct ProfileView: View {
                                     .font(.system(size: 16, weight: .regular))
                                     .foregroundColor(.black.opacity(0.75))
                             }
-                            // Center the circle on the teal/green boundary:
-                            // top padding = boundaryY - 70
-                            .padding(.top, boundaryY - 70)
+                            .padding(.top, boundaryY - (profileImageSize / 2))
                         }
                     }
                     .frame(height: headerTotalHeight)
 
-                    // MARK: - Physical Attributes Card
                     VStack(spacing: 0) {
                         PhysicalAttributeRow(label: "Height", value: profileManager.userProfile?.height ?? "N/A")
 
@@ -108,13 +99,13 @@ struct ProfileView: View {
 
                         PhysicalAttributeRow(label: "Weight", value: profileManager.userProfile?.weight ?? "N/A")
                     }
-                    .padding(20)
-                    .background(Color.cardBackground)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.tropicalTeal)
                     .cornerRadius(18)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 30)
                     .padding(.top, 12)
 
-                    // MARK: - Medical Information Section
                     VStack(spacing: 0) {
                         NavigationLink(destination: MedicalDetailView(
                             title: "Medical Background",
@@ -157,19 +148,18 @@ struct ProfileView: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
-                    .padding(20)
-                    .background(Color.cardBackground)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.tropicalTeal)
                     .cornerRadius(18)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 30)
                     .padding(.top, 18)
 
                     Spacer(minLength: 0)
                 }
-                // Helps keep the layout stable and fill the screen
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(.bottom, 18) // extra breathing room above the tab bar
+                .padding(.bottom, 18)
             }
-            // Don’t let implicit animations sneak in
             .transaction { txn in
                 txn.animation = nil
             }
@@ -195,7 +185,7 @@ struct PhysicalAttributeRow: View {
                 .font(.body)
                 .foregroundColor(.black)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 8)
     }
 }
 
@@ -215,10 +205,12 @@ struct MedicalInfoRow: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.black)
         }
-        .padding(.vertical, 15)
+        .padding(.vertical, 10)
         .contentShape(Rectangle())
     }
 }
+
+// --- Your MedicalDetailView and helpers unchanged below ---
 
 struct MedicalDetailView: View {
     @EnvironmentObject var profileManager: UserProfileManager
@@ -259,23 +251,19 @@ struct MedicalDetailView: View {
 
     var body: some View {
         ZStack {
-            Color.contentBackground
+            Color.white
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                LinearGradient(
-                    gradient: Gradient(colors: [Color.tropicalTeal, Color.contentBackground]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 120)
-                .ignoresSafeArea(edges: .top)
+                Color.tropicalTeal
+                    .frame(height: 120)
+                    .ignoresSafeArea(edges: .top)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 25) {
                         Text(title)
                             .font(.system(size: 32, weight: .bold))
-                            .foregroundColor(.textPrimary)
+                            .foregroundColor(.black)
                             .padding(.top, 20)
                             .padding(.horizontal, 20)
 
@@ -283,7 +271,7 @@ struct MedicalDetailView: View {
                             if isEditing {
                                 TextEditor(text: $content)
                                     .font(.body)
-                                    .foregroundColor(.textPrimary)
+                                    .foregroundColor(.black)
                                     .frame(minHeight: 200)
                                     .padding(8)
                                     .background(Color.white)
@@ -296,10 +284,10 @@ struct MedicalDetailView: View {
                                         VStack(spacing: 10) {
                                             Image(systemName: "doc.text")
                                                 .font(.system(size: 50))
-                                                .foregroundColor(.textPrimary.opacity(0.3))
+                                                .foregroundColor(.black.opacity(0.3))
                                             Text("No information provided")
                                                 .font(.body)
-                                                .foregroundColor(.textPrimary.opacity(0.6))
+                                                .foregroundColor(.black.opacity(0.6))
                                         }
                                         .padding(.vertical, 40)
                                         Spacer()
@@ -307,14 +295,14 @@ struct MedicalDetailView: View {
                                 } else {
                                     Text(content)
                                         .font(.body)
-                                        .foregroundColor(.textPrimary)
+                                        .foregroundColor(.black)
                                         .lineSpacing(4)
                                 }
                             }
                         }
                         .padding(25)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.cardBackground)
+                        .background(Color.tropicalTeal)
                         .cornerRadius(15)
                         .padding(.horizontal, 20)
 
@@ -327,7 +315,7 @@ struct MedicalDetailView: View {
                                 }) {
                                     Text("Cancel")
                                         .font(.headline)
-                                        .foregroundColor(.textPrimary)
+                                        .foregroundColor(.black)
                                         .frame(maxWidth: .infinity)
                                         .padding()
                                         .background(Color.gray.opacity(0.2))
