@@ -203,33 +203,59 @@ app.put("/api/users/:userId", async (req, res) => {
   }
 });
 
-// Get user endpoint
-app.get("/api/users/:userId", async (req, res) => {
+    // Get all users endpoint (for web dashboard)
+    app.get("/api/users", async (req, res) => {
+      try {
+        const [rows] = await pool.execute(
+          "SELECT userId, userName, age, sex, wellnessCheckFrequency, wellnessReport FROM USERS ORDER BY userId DESC"
+        );
+        res.status(200).json({ success: true, users: rows });
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+
+// Get all users endpoint (for web dashboard)
+app.get("/api/users", async (req, res) => {
   try {
-    const userId = req.params.userId;
-    const [rows] = await pool.execute("SELECT * FROM USERS WHERE userId = ?", [
-      userId,
-    ]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      user: rows[0],
-    });
+    const [rows] = await pool.execute(
+      "SELECT userId, userName, age, sex, wellnessCheckFrequency, wellnessReport FROM USERS ORDER BY userId DESC"
+    );
+    res.status(200).json({ success: true, users: rows });
   } catch (error) {
-    console.error("Error fetching user:", error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    console.error("Error fetching users:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Get user endpoint
+app.get("/api/users/:userId", async (req, res) => {
+      try {
+        const userId = req.params.userId;
+        const [rows] = await pool.execute("SELECT * FROM USERS WHERE userId = ?", [
+          userId,
+        ]);
+
+        if (rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: "User not found",
+          });
+        }
+
+        res.status(200).json({
+          success: true,
+          user: rows[0],
+        });
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).json({
+          success: false,
+          error: error.message,
+        });
+      }
+    });
 
 // Start server
 app.listen(PORT, () => {

@@ -144,7 +144,7 @@ struct WelcomeView: View {
                         .font(.system(size: 80))
                         .foregroundColor(.accentColor)
                 
-                Text("Welcome to Spark")
+                Text("Welcome to Careity")
                     .font(.system(size: 36, weight: .bold))
                     .foregroundColor(.black)
                 

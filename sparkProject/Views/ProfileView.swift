@@ -71,7 +71,7 @@ struct ProfileView: View {
 
                         if let profile = profileManager.userProfile {
                             VStack(spacing: 4) {
-                                Image("profile")
+                                Image("susan")
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                                     .frame(width: profileImageSize, height: profileImageSize)
