@@ -199,118 +199,174 @@ struct WellnessCheckView: View {
     @State private var isLoadingResponse = false
     @State private var isConversationComplete = false
     @State private var followUpCount = 0
+    @State private var wellnessCheckFrequency: Int = 30
     @FocusState private var isInputFocused: Bool
     
     private let aiService = AIService(apiKey: Config.openAIKey)
     private let databaseService = DatabaseService()
     
+    private var nextWellnessCheckDate: Date {
+        Calendar.current.date(byAdding: .day, value: wellnessCheckFrequency, to: Date()) ?? Date()
+    }
+    
+    private var formattedNextCheckDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM d, yyyy"
+        return formatter.string(from: nextWellnessCheckDate)
+    }
+    
+    private var frequencyDescription: String {
+        switch wellnessCheckFrequency {
+        case 1:
+            return "Daily"
+        case 2:
+            return "Every 2 days"
+        case 7:
+            return "Weekly"
+        case 14:
+            return "Bi-weekly"
+        case 30:
+            return "Monthly"
+        default:
+            return "Every \(wellnessCheckFrequency) days"
+        }
+    }
+    
     var body: some View {
         ZStack {
             Color.contentBackground
                 .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Header
-                Text("Wellness Check")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.black)
-                    .padding(.top, 20)
-                    .padding(.bottom, 30)
+
+            GeometryReader { geo in
+                // Heights reserved for header + info bar + padding + custom tab bar overlay
+                let tabBarOverlayHeight: CGFloat = 49 + 16 // your custom tab bar heights
+                let headerBlockHeight: CGFloat = 20 + 30 + 40 // top/bottom padding + title visual space
+                let infoBarBlockHeight: CGFloat = 16 + 84 // top padding + info bar approx height
+                let outerVerticalPadding: CGFloat = 0 // we already manage internal padding
+                let availableForChat = geo.size.height
+                    - tabBarOverlayHeight
+                    - headerBlockHeight
+                    - infoBarBlockHeight
+                    - outerVerticalPadding
+                    - 20 // extra breathing room
                 
-                // Chat Card
-                ZStack {
-                    Color.cardBackground
-                        .cornerRadius(20)
-                    
-                    VStack(spacing: 0) {
-                        // Date display
-                        Text(formattedDate)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.black.opacity(0.6))
-                            .padding(.top, 20)
-                            .padding(.bottom, 16)
+                let chatCardHeight:CGFloat = 540
+
+                VStack(spacing: 0) {
+                    // Header
+                    Text("Wellness Check")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.top, 20)
+                        .padding(.bottom, 30)
+                        .frame(maxWidth: .infinity)
+
+                    // Chat Card (TOP beige box) — constrained so it doesn't push the info bar off-screen
+                    ZStack {
+                        Color.cardBackground
+                            .cornerRadius(20)
                         
-                        // Messages area - takes available space
-                        ScrollViewReader { proxy in
-                            ScrollView {
-                                VStack(alignment: .leading, spacing: 16) {
-                                    ForEach(messages) { message in
-                                        ChatBubbleView(message: message)
-                                            .id(message.id)
-                                    }
-                                    
-                                    // Loading indicator
-                                    if isLoadingResponse {
-                                        HStack {
-                                            ProgressView()
-                                                .scaleEffect(0.8)
-                                            Text("Thinking...")
-                                                .font(.system(size: 14))
-                                                .foregroundColor(.black.opacity(0.6))
-                                        }
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 12)
-                                        .background(Color(white: 0.9))
-                                        .cornerRadius(16)
-                                        .id("loading")
-                                    }
-                                }
-                                .padding(.horizontal, 20)
+                        VStack(spacing: 0) {
+                            // Date display
+                            Text(formattedDate)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.black.opacity(0.6))
+                                .padding(.top, 20)
                                 .padding(.bottom, 16)
-                            }
-                            .onChange(of: messages.count) { _ in
-                                if let lastMessage = messages.last {
-                                    withAnimation(.easeOut(duration: 0.3)) {
-                                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            
+                            // Messages area - takes available space inside the card
+                            ScrollViewReader { proxy in
+                                ScrollView {
+                                    VStack(alignment: .leading, spacing: 16) {
+                                        ForEach(messages) { message in
+                                            ChatBubbleView(message: message)
+                                                .id(message.id)
+                                        }
+                                        
+                                        // Loading indicator
+                                        if isLoadingResponse {
+                                            HStack {
+                                                ProgressView()
+                                                    .scaleEffect(0.8)
+                                                Text("Thinking...")
+                                                    .font(.system(size: 14))
+                                                    .foregroundColor(.black.opacity(0.6))
+                                            }
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 12)
+                                            .background(Color(white: 0.9))
+                                            .cornerRadius(16)
+                                            .id("loading")
+                                        }
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .padding(.bottom, 16)
+                                }
+                                .onChange(of: messages.count) { _ in
+                                    if let lastMessage = messages.last {
+                                        withAnimation(.easeOut(duration: 0.3)) {
+                                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                        }
                                     }
                                 }
-                            }
-                            .onChange(of: isLoadingResponse) { loading in
-                                if loading {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        withAnimation {
-                                            proxy.scrollTo("loading", anchor: .bottom)
+                                .onChange(of: isLoadingResponse) { loading in
+                                    if loading {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                            withAnimation {
+                                                proxy.scrollTo("loading", anchor: .bottom)
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        
-                        // Input area - fixed at bottom
-                        HStack(spacing: 12) {
-                            TextField("Describe your health...", text: $inputText)
-                                .font(.system(size: 16))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .frame(height: 36)
-                                .background(Color(white: 0.9)) // Light grey background
-                                .cornerRadius(20)
-                                .focused($isInputFocused)
-                                .onSubmit {
-                                    sendMessage()
-                                }
                             
-                            Button(action: sendMessage) {
-                                Image(systemName: "arrow.up")
-                                    .font(.system(size: 16, weight: .semibold))
+                            // Input area - fixed at bottom
+                            HStack(spacing: 12) {
+                                TextField("Describe your health...", text: $inputText)
+                                    .font(.system(size: 16))
                                     .foregroundColor(.black)
-                                    .frame(width: 36, height: 36)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .frame(height: 36)
                                     .background(Color(white: 0.9)) // Light grey background
-                                    .cornerRadius(12)
+                                    .cornerRadius(20)
+                                    .focused($isInputFocused)
+                                    .onSubmit {
+                                        sendMessage()
+                                    }
+                                
+                                Button(action: sendMessage) {
+                                    Image(systemName: "arrow.up")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(.black)
+                                        .frame(width: 36, height: 36)
+                                        .background(Color(white: 0.9)) // Light grey background
+                                        .cornerRadius(12)
+                                }
+                                .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingResponse || isConversationComplete)
+                                .opacity((inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingResponse || isConversationComplete) ? 0.5 : 1.0)
                             }
-                            .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingResponse || isConversationComplete)
-                            .opacity((inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingResponse || isConversationComplete) ? 0.5 : 1.0)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 20)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
                     }
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: chatCardHeight) // ✅ keeps the top box from growing too tall
+
+                    // Wellness Check Info Bar (BOTTOM beige box) — now guaranteed room
+                    WellnessCheckInfoBar(
+                        nextCheckDate: formattedNextCheckDate,
+                        frequency: frequencyDescription
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+
+                    Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 20)
-                .frame(maxWidth: .infinity)
-                
-                Spacer()
-                    .frame(height: 80)
+                // keep content above your custom tab bar overlay
+                .padding(.bottom, tabBarOverlayHeight)
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
             }
         }
         .navigationBarHidden(true)
@@ -325,6 +381,9 @@ struct WellnessCheckView: View {
                 followUpCount = 0
                 isConversationComplete = false
             }
+            
+            // Load wellness check frequency
+            loadWellnessCheckFrequency()
         }
     }
     
@@ -332,6 +391,23 @@ struct WellnessCheckView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM d, yyyy"
         return formatter.string(from: Date())
+    }
+    
+    private func loadWellnessCheckFrequency() {
+        guard let userId = profileManager.userProfile?.userId else {
+            return
+        }
+        
+        Task {
+            do {
+                let frequency = try await databaseService.getWellnessCheckFrequency(userId: userId)
+                await MainActor.run {
+                    wellnessCheckFrequency = frequency
+                }
+            } catch {
+                print("⚠️ Could not load wellness check frequency: \(error.localizedDescription)")
+            }
+        }
     }
     
     private func sendMessage() {
@@ -471,30 +547,53 @@ struct WellnessCheckView: View {
         
         print("📝 Generating wellness report for user ID: \(userId)")
         
+        // Fetch user health data from database (excluding name for anonymity)
+        var userHealthData: UserHealthData?
+        do {
+            print("📊 Fetching user health data from database...")
+            userHealthData = try await databaseService.getUserData(userId: userId)
+            print("✅ User health data retrieved")
+        } catch {
+            print("⚠️ Could not fetch user health data: \(error.localizedDescription)")
+            print("   Continuing with report generation without user context...")
+        }
+        
         // Generate report from conversation
         let conversationText = messages.map { message in
             "\(message.isFromUser ? "User" : "Assistant"): \(message.content)"
         }.joined(separator: "\n")
         
+        // Build context string with user health data
+        var userContext = ""
+        if let healthData = userHealthData {
+            userContext = "\n\n" + healthData.formattedContext()
+        }
+        
         let reportPrompt = """
-        Based on the following wellness check conversation, generate a concise report (2-3 sentences) that includes:
+        Based on the following wellness check conversation and patient health profile, generate a concise report (2-3 sentences) that includes:
         1. A brief overview of the user's symptoms/concerns
         2. Whether a doctor's appointment was recommended (yes/no)
         3. Whether the user agreed to book an appointment (if applicable)
         
-        Keep it professional and concise. Do not include personal details beyond symptoms.
+        IMPORTANT: Consider the patient's health profile when generating the report. For example:
+        - If they have chronic conditions, consider how the current symptoms relate to those conditions
+        - If they are on medications, consider potential interactions or side effects
+        - If they have hereditary risk patterns, consider family history relevance
+        - Use age and biological sex to provide age/sex-appropriate context
+        
+        Keep it professional and concise. Do not include personal details beyond symptoms and relevant health information.
         Format as a brief summary suitable for a medical record.
         
-        Conversation:
-        \(conversationText)
+        Wellness Check Conversation:
+        \(conversationText)\(userContext)
         
         Generate only the report text, nothing else:
         """
         
         do {
-            print("🤖 Calling AI to generate report...")
+            print("🤖 Calling AI to generate report with user context...")
             let report = try await aiService.sendMessage(
-                userMessage: "Generate the wellness check report based on the conversation above.",
+                userMessage: "Generate the wellness check report based on the conversation and patient health profile above.",
                 conversationHistory: [],
                 systemPrompt: reportPrompt
             )
@@ -523,6 +622,45 @@ struct WellnessCheckView: View {
     }
 }
 
+struct WellnessCheckInfoBar: View {
+    let nextCheckDate: String
+    let frequency: String
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Next Wellness Check")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.black.opacity(0.7))
+                
+                Text(nextCheckDate)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.black)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Frequency")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.black.opacity(0.7))
+                
+                Text(frequency)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.buttonPrimary)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(Color.cardBackground)
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.buttonPrimary.opacity(0.3), lineWidth: 1)
+        )
+    }
+}
+
 struct ChatBubbleView: View {
     let message: ChatMessage
     
@@ -538,7 +676,7 @@ struct ChatBubbleView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(
-                    message.isFromUser 
+                    message.isFromUser
                         ? Color.tropicalTeal.opacity(0.3)
                         : Color(white: 0.9) // Light grey for AI messages
                 )

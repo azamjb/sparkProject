@@ -128,6 +128,32 @@ app.put("/api/users/:userId/wellness-report", async (req, res) => {
   }
 });
 
+// Update wellness check frequency endpoint - MUST come before /api/users/:userId
+app.put("/api/users/:userId/wellness-frequency", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { wellnessCheckFrequency } = req.body;
+
+    console.log(`📊 Updating wellness check frequency for user ${userId}: ${wellnessCheckFrequency} days`);
+
+    await pool.execute(
+      "UPDATE USERS SET wellnessCheckFrequency = ? WHERE userId = ?",
+      [wellnessCheckFrequency || "", userId]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Wellness check frequency updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating wellness check frequency:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Update user endpoint
 app.put("/api/users/:userId", async (req, res) => {
   try {

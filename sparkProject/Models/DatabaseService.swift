@@ -126,4 +126,149 @@ class DatabaseService {
         
         print("✅ Wellness report updated successfully for user \(userId)")
     }
+    
+    func updateWellnessCheckFrequency(userId: Int, frequency: Int) async throws {
+        let url = URL(string: "\(baseURL)/users/\(userId)/wellness-frequency")!
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let frequencyData: [String: Any] = [
+            "wellnessCheckFrequency": String(frequency)
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: frequencyData)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(domain: "DatabaseService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
+        }
+        
+        if httpResponse.statusCode != 200 && httpResponse.statusCode != 204 {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            print("❌ Wellness frequency update failed - Status: \(httpResponse.statusCode), Error: \(errorMessage)")
+            throw NSError(
+                domain: "DatabaseService",
+                code: httpResponse.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode): \(errorMessage)"]
+            )
+        }
+        
+        print("✅ Wellness check frequency updated successfully for user \(userId)")
+    }
+    
+    func getUserData(userId: Int) async throws -> UserHealthData {
+        let url = URL(string: "\(baseURL)/users/\(userId)")!
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(domain: "DatabaseService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
+        }
+        
+        if httpResponse.statusCode == 200 {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let user = json["user"] as? [String: Any] {
+                return UserHealthData(
+                    age: user["age"] as? String ?? "",
+                    sex: user["sex"] as? String ?? "",
+                    height: user["height"] as? String ?? "",
+                    weight: user["weight"] as? String ?? "",
+                    medicalBackground: user["medicalBackground"] as? String ?? "",
+                    chronicConditions: user["chronicConditions"] as? String ?? "",
+                    currentMedications: user["currentMedications"] as? String ?? "",
+                    hereditaryRiskPatterns: user["hereditaryRiskPatterns"] as? String ?? ""
+                )
+            }
+            throw NSError(domain: "DatabaseService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to parse user data"])
+        } else {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw NSError(
+                domain: "DatabaseService",
+                code: httpResponse.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode): \(errorMessage)"]
+            )
+        }
+    }
+    
+    func getWellnessCheckFrequency(userId: Int) async throws -> Int {
+        let url = URL(string: "\(baseURL)/users/\(userId)")!
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(domain: "DatabaseService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
+        }
+        
+        if httpResponse.statusCode == 200 {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let user = json["user"] as? [String: Any],
+               let frequencyString = user["wellnessCheckFrequency"] as? String,
+               !frequencyString.isEmpty,
+               let frequency = Int(frequencyString) {
+                return frequency
+            }
+            // Default to 30 days if not set
+            return 30
+        } else {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw NSError(
+                domain: "DatabaseService",
+                code: httpResponse.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode): \(errorMessage)"]
+            )
+        }
+    }
+}
+
+struct UserHealthData {
+    let age: String
+    let sex: String
+    let height: String
+    let weight: String
+    let medicalBackground: String
+    let chronicConditions: String
+    let currentMedications: String
+    let hereditaryRiskPatterns: String
+    
+    func formattedContext() -> String {
+        var context = "Patient Health Profile (anonymized):\n"
+        
+        if !age.isEmpty {
+            context += "- Age: \(age)\n"
+        }
+        if !sex.isEmpty {
+            context += "- Biological Sex: \(sex)\n"
+        }
+        if !height.isEmpty {
+            context += "- Height: \(height)\n"
+        }
+        if !weight.isEmpty {
+            context += "- Weight: \(weight)\n"
+        }
+        if !medicalBackground.isEmpty {
+            context += "- Medical Background: \(medicalBackground)\n"
+        }
+        if !chronicConditions.isEmpty {
+            context += "- Chronic Conditions: \(chronicConditions)\n"
+        }
+        if !currentMedications.isEmpty {
+            context += "- Current Medications: \(currentMedications)\n"
+        }
+        if !hereditaryRiskPatterns.isEmpty {
+            context += "- Hereditary Risk Patterns: \(hereditaryRiskPatterns)\n"
+        }
+        
+        return context
+    }
 }

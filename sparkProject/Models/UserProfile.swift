@@ -31,6 +31,7 @@ class UserProfileManager: ObservableObject {
     
     private let userDefaultsKey = "userProfile"
     private let databaseService = DatabaseService()
+    private let aiService = AIService(apiKey: Config.openAIKey)
     
     init() {
         loadProfile()
@@ -56,6 +57,22 @@ class UserProfileManager: ObservableObject {
                     let userId = try await databaseService.saveUser(profile)
                     var updatedProfile = profile
                     updatedProfile.userId = userId
+                    
+                    // Generate wellness check frequency for new user
+                    print("📊 Generating wellness check frequency for new user...")
+                    do {
+                        let frequency = try await aiService.generateWellnessCheckFrequency(for: profile)
+                        print("✅ Recommended wellness check frequency: \(frequency) days")
+                        
+                        // Update frequency in database
+                        try await databaseService.updateWellnessCheckFrequency(userId: userId, frequency: frequency)
+                        print("✅ Wellness check frequency saved to database")
+                    } catch {
+                        print("⚠️ Could not generate wellness check frequency: \(error.localizedDescription)")
+                        print("   Defaulting to 30 days")
+                        // Set default frequency
+                        try? await databaseService.updateWellnessCheckFrequency(userId: userId, frequency: 30)
+                    }
                     
                     await MainActor.run {
                         self.userProfile = updatedProfile
